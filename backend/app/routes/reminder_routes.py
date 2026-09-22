@@ -1,6 +1,7 @@
 from flask import Blueprint, request, g
 
 from app.middleware.auth_middleware import token_required
+
 from app.models.patient_model import find_patient_by_id
 
 from app.models.reminder_model import (
@@ -93,6 +94,12 @@ def create():
 @token_required
 def get_reminders(patient_id):
 
+    if g.user["role"] != "caregiver":
+        return {
+            "status": "error",
+            "message": "Only caregivers can access reminders"
+        }, 403
+
     patient = find_patient_by_id(patient_id)
 
     if not patient:
@@ -112,6 +119,7 @@ def get_reminders(patient_id):
     reminder_list = []
 
     for reminder in reminders:
+
         reminder_list.append({
             "id": str(reminder["_id"]),
             "patient_id": str(reminder["patient_id"]),
@@ -129,13 +137,19 @@ def get_reminders(patient_id):
     }, 200
 
 
-    # ==========================================
+# ==========================================
 # MARK REMINDER AS COMPLETED
 # ==========================================
 
 @reminder_bp.route("/<reminder_id>/complete", methods=["PUT"])
 @token_required
 def complete_reminder(reminder_id):
+
+    if g.user["role"] != "caregiver":
+        return {
+            "status": "error",
+            "message": "Only caregivers can update reminders"
+        }, 403
 
     reminder = find_reminder_by_id(reminder_id)
 
@@ -185,6 +199,12 @@ def complete_reminder(reminder_id):
 @reminder_bp.route("/<reminder_id>", methods=["DELETE"])
 @token_required
 def remove_reminder(reminder_id):
+
+    if g.user["role"] != "caregiver":
+        return {
+            "status": "error",
+            "message": "Only caregivers can delete reminders"
+        }, 403
 
     reminder = find_reminder_by_id(reminder_id)
 

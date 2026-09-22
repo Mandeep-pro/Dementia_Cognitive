@@ -1,10 +1,12 @@
 from flask import Blueprint, g
 
 from app.middleware.auth_middleware import token_required
+
 from app.models.patient_model import find_patient_by_id
 from app.models.game_result_model import find_results_by_patient
 from app.models.reminder_model import find_reminders_by_patient
 from app.models.memory_model import find_memories_by_patient
+
 from app.services.adaptive_service import get_next_difficulty
 
 
@@ -19,11 +21,19 @@ caregiver_bp = Blueprint("caregiver", __name__)
 @token_required
 def get_dashboard(patient_id):
 
+    # ------------------------------------------
+    # Check caregiver role
+    # ------------------------------------------
+
     if g.user["role"] != "caregiver":
         return {
             "status": "error",
             "message": "Only caregivers can access the dashboard"
         }, 403
+
+    # ------------------------------------------
+    # Find patient
+    # ------------------------------------------
 
     patient = find_patient_by_id(patient_id)
 
@@ -33,15 +43,19 @@ def get_dashboard(patient_id):
             "message": "Patient not found"
         }, 404
 
+    # ------------------------------------------
+    # Check caregiver ownership
+    # ------------------------------------------
+
     if str(patient["caregiver_id"]) != g.user["user_id"]:
         return {
             "status": "error",
             "message": "You are not authorized for this patient"
         }, 403
 
-    # ------------------------------------------
-    # Patient information
-    # ------------------------------------------
+    # ==========================================
+    # PATIENT INFORMATION
+    # ==========================================
 
     patient_data = {
         "id": str(patient["_id"]),
@@ -51,15 +65,16 @@ def get_dashboard(patient_id):
         "preferred_language": patient["preferred_language"]
     }
 
-    # ------------------------------------------
-    # Game results
-    # ------------------------------------------
+    # ==========================================
+    # GAME RESULTS
+    # ==========================================
 
     results = find_results_by_patient(patient_id)
 
     game_results = []
 
     for result in results:
+
         game_results.append({
             "id": str(result["_id"]),
             "game_id": result["game_id"],
@@ -70,11 +85,12 @@ def get_dashboard(patient_id):
             "created_at": result["created_at"].isoformat()
         })
 
-    # ------------------------------------------
-    # Adaptive difficulty
-    # ------------------------------------------
+    # ==========================================
+    # GAME STATISTICS + ADAPTIVE DIFFICULTY
+    # ==========================================
 
     if results:
+
         latest_result = results[0]
 
         current_difficulty = latest_result["difficulty"]
@@ -84,20 +100,39 @@ def get_dashboard(patient_id):
             current_difficulty,
             accuracy
         )
+
+        total_games = len(results)
+
+        average_accuracy = sum(
+            result["accuracy"]
+            for result in results
+        ) / total_games
+
+        highest_score = max(
+            result["score"]
+            for result in results
+        )
+
     else:
+
         current_difficulty = "easy"
         accuracy = None
         next_difficulty = "easy"
 
-    # ------------------------------------------
-    # Reminders
-    # ------------------------------------------
+        total_games = 0
+        average_accuracy = None
+        highest_score = None
+
+    # ==========================================
+    # REMINDERS
+    # ==========================================
 
     reminders = find_reminders_by_patient(patient_id)
 
     reminder_list = []
 
     for reminder in reminders:
+
         reminder_list.append({
             "id": str(reminder["_id"]),
             "title": reminder["title"],
@@ -106,15 +141,16 @@ def get_dashboard(patient_id):
             "completed": reminder["completed"]
         })
 
-    # ------------------------------------------
-    # Memories
-    # ------------------------------------------
+    # ==========================================
+    # MEMORY
+    # ==========================================
 
     memories = find_memories_by_patient(patient_id)
 
     memory_list = []
 
     for memory in memories:
+
         memory_list.append({
             "id": str(memory["_id"]),
             "title": memory["title"],
@@ -123,31 +159,68 @@ def get_dashboard(patient_id):
             "image_url": memory.get("image_url")
         })
 
-    # ------------------------------------------
-    # Dashboard response
-    # ------------------------------------------
+    # ==========================================
+    # DASHBOARD RESPONSE
+    # ==========================================
 
     return {
+
         "status": "success",
+
         "dashboard": {
+
+            # ----------------------------------
+            # Patient
+            # ----------------------------------
+
             "patient": patient_data,
 
+            # ----------------------------------
+            # Games
+            # ----------------------------------
+
             "games": {
-                "total_results": len(game_results),
+
+                "total_games": total_games,
+
+                "average_accuracy": (
+                    round(average_accuracy, 2)
+                    if average_accuracy is not None
+                    else None
+                ),
+
+                "highest_score": highest_score,
+
                 "latest_accuracy": accuracy,
+
                 "current_difficulty": current_difficulty,
+
                 "next_difficulty": next_difficulty,
+
                 "results": game_results
             },
 
+            # ----------------------------------
+            # Reminders
+            # ----------------------------------
+
             "reminders": {
+
                 "count": len(reminder_list),
+
                 "items": reminder_list
             },
 
+            # ----------------------------------
+            # Memories
+            # ----------------------------------
+
             "memories": {
+
                 "count": len(memory_list),
+
                 "items": memory_list
             }
         }
+
     }, 200

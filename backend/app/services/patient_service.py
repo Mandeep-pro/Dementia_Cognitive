@@ -15,21 +15,23 @@ def create_patient_for_caregiver(
     preferred_name,
     age,
     preferred_language,
-    caregiver_id
+    caregiver_id,
+    family=None,
+    favorite_things=None,
+    daily_routine=None,
+    important_places=None,
+    personal_memories=None
 ):
-    # Check if the email is already registered
     existing_user = find_user_by_email(email)
 
     if existing_user:
         return None, "Email already registered"
 
-    # Hash patient password
     password_hash = bcrypt.hashpw(
         password.encode("utf-8"),
         bcrypt.gensalt()
     ).decode("utf-8")
 
-    # Create patient login account
     user_id = create_user(
         name=name,
         email=email,
@@ -37,13 +39,17 @@ def create_patient_for_caregiver(
         role="patient"
     )
 
-    # Create patient profile
     patient_id = create_patient(
         user_id=user_id,
         preferred_name=preferred_name,
         age=age,
         preferred_language=preferred_language,
-        caregiver_id=caregiver_id
+        caregiver_id=caregiver_id,
+        family=family,
+        favorite_things=favorite_things,
+        daily_routine=daily_routine,
+        important_places=important_places,
+        personal_memories=personal_memories
     )
 
     return {
