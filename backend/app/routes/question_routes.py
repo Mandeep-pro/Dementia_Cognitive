@@ -8,6 +8,8 @@ from app.services.personalization_service import (
     patient_has_personal_info,
     generate_personalized_questions
 )
+from app.services.adaptive_service import recommend_next_difficulty
+from app.models.game_result_model import find_results_by_patient
 
 
 question_bp = Blueprint("question", __name__)
@@ -47,6 +49,21 @@ def get_questions():
                         patient = find_patient_by_user_id(user_id)
                 except Exception:
                     pass
+
+    if difficulty == "auto" and patient:
+        previous_results = find_results_by_patient(str(patient["_id"]))
+        if previous_results:
+            latest_result = previous_results[0]
+            difficulty, _, _ = recommend_next_difficulty(
+                patient=patient,
+                current_difficulty=latest_result.get("difficulty", "easy"),
+                accuracy=latest_result.get("accuracy", 0),
+                time_taken=latest_result.get("time_taken", 0)
+            )
+        else:
+            difficulty = "easy"
+    elif difficulty == "auto":
+        difficulty = "easy"
 
     # 3. If patient has provided personal info, generate personalized questions
     if patient and patient_has_personal_info(patient):

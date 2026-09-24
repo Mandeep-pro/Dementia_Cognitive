@@ -3,7 +3,7 @@ from flask import Blueprint, request, g
 from app.middleware.auth_middleware import token_required
 from app.models.patient_model import find_patient_by_id
 from app.services.game_service import save_game_result
-from app.services.adaptive_service import get_next_difficulty
+from app.services.adaptive_service import recommend_next_difficulty
 
 game_result_bp = Blueprint("game_result", __name__)
 
@@ -247,17 +247,21 @@ def get_next_game_difficulty(patient_id):
 
     latest_result = results[0]
 
-    current_difficulty = latest_result["difficulty"]
-    accuracy = latest_result["accuracy"]
+    current_difficulty = latest_result.get("difficulty", "easy")
+    accuracy = latest_result.get("accuracy", 0)
 
-    next_difficulty = get_next_difficulty(
+    next_difficulty, recommendation_source, confidence = recommend_next_difficulty(
+        patient=patient,
         current_difficulty=current_difficulty,
-        accuracy=accuracy
+        accuracy=accuracy,
+        time_taken=latest_result.get("time_taken", 0)
     )
 
     return {
         "status": "success",
         "current_difficulty": current_difficulty,
         "accuracy": accuracy,
-        "next_difficulty": next_difficulty
+        "next_difficulty": next_difficulty,
+        "recommendation_source": recommendation_source,
+        "confidence": confidence
     }, 200

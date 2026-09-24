@@ -115,7 +115,7 @@ export function App() {
       // 4. Fetch questions (Personalized if patient has personal info, else fixed backup)
       try {
         const patientId = activeUser?.id;
-        const qs = await api.getQuestions(null, 'easy', patientId);
+        const qs = await api.getQuestions(null, 'auto', patientId);
         if (qs && qs.length > 0) setQuestions(qs);
       } catch (e) {
         console.warn('Using default questions');
@@ -172,7 +172,7 @@ export function App() {
     setInQuizMode(true);
     try {
       const patientId = patient?.id || patient?._id || patient?.patient_id || patient?.user_id || currentUser?.id;
-      const qs = await api.getQuestions(game?.category || null, 'easy', patientId);
+      const qs = await api.getQuestions(game?.category || null, 'auto', patientId);
       if (qs && qs.length > 0) {
         setQuestions(qs);
       }
@@ -217,7 +217,7 @@ export function App() {
         if (mems && mems.length > 0) setMemories(mems);
 
         // Fetch questions for patient (Personalized if personal info exists, else backup)
-        const qs = await api.getQuestions(null, 'easy', patientId).catch(() => []);
+        const qs = await api.getQuestions(null, 'auto', patientId).catch(() => []);
         if (qs && qs.length > 0) setQuestions(qs);
       }
     } catch (e) {

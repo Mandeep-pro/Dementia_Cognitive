@@ -16,7 +16,7 @@ from app.config.settings import MONGO_URI
 client = MongoClient(
     MONGO_URI,
     connect=False,
-    serverSelectionTimeoutMS=30000
+    serverSelectionTimeoutMS=3000
 )
 
 # Use database from URI if specified, else fallback to 'smritiroots'

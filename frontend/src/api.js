@@ -354,7 +354,7 @@ export const api = {
   },
 
   // Get Questions (Personalized if patient has personal info, else fixed backup questions)
-  getQuestions: async (category = null, difficulty = null, patientId = null) => {
+  getQuestions: async (category = null, difficulty = 'auto', patientId = null) => {
     try {
       let url = `${API_BASE}/questions/general`;
       const params = new URLSearchParams();
